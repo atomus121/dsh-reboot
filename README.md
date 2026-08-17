@@ -17,6 +17,16 @@
 
 ## 安装
 
+直接安装 GitHub 上的预构建版本（推荐）：
+
+```bash
+dsh plugin --profile web add "github:atomus121/dsh-reboot"
+```
+
+安装完成后重启当前 `dsh web` 进程，并刷新页面。
+
+如需从源码本地构建安装：
+
 ```bash
 git clone https://github.com/atomus121/dsh-reboot.git
 cd dsh-reboot
@@ -25,8 +35,6 @@ pnpm build
 dsh plugin --profile web add "link:$PWD"
 ```
 
-安装完成后重启当前 `dsh web` 进程，并刷新页面。
-
 ## 本地构建
 
 ```bash
@@ -34,7 +42,7 @@ pnpm build   # tsdown 双端构建 → lib/index.js + lib/client.js
 pnpm check   # tsc 类型检查（node + client 两份 tsconfig）
 ```
 
-`lib/` 为构建产物，不入库。
+`lib/` 已预构建并随仓库提交，便于 `dsh plugin add "github:..."` 直接安装；改动源码后运行 `pnpm build` 重新生成。
 
 ## 目录结构
 
