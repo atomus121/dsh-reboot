@@ -60,13 +60,19 @@ const PS = 'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
  * the dsh PID — `taskkill /F` WITHOUT `/T` — letting the launcher outlive
  * its own parent (Windows does not reap children of a killed parent, and the
  * DSH subprocess seam uses no job objects). It then waits for the port to
- * free and relaunches `node <dsh bin.js> web` hidden from the same cwd.
+ * free, gives the old process a settle grace, relaunches
+ * `node <dsh bin.js> web` hidden from the same cwd, and verifies the new
+ * server comes up. Every step is logged to `%TEMP%\dsh-reboot-restart.log`.
  */
 function launcherScript(nodePath: string, binPath: string, cwd: string): string {
+  const log = 'C:/Users/EvanShaw/AppData/Local/Temp/dsh-reboot-restart.log'
   return [
     "$ErrorActionPreference = 'SilentlyContinue'",
+    "$log = '" + log + "'",
+    "'start ' + (Get-Date -Format 'HH:mm:ss') | Out-File $log",
     'Start-Sleep -Seconds 2',
     '$c = Get-NetTCPConnection -LocalPort ' + PORT + ' -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1',
+    "'found pid ' + $c.OwningProcess | Out-File $log -Append",
     'if ($c) { taskkill /PID $c.OwningProcess /F }',
     '$tries = 0',
     'do {',
@@ -74,7 +80,18 @@ function launcherScript(nodePath: string, binPath: string, cwd: string): string 
     '  $tries++',
     '  $still = Get-NetTCPConnection -LocalPort ' + PORT + ' -State Listen -ErrorAction SilentlyContinue',
     '} while ($still -and $tries -lt 15)',
+    "'port free after ' + $tries + 's' | Out-File $log -Append",
+    'Start-Sleep -Seconds 3',
     "Start-Process -FilePath '" + nodePath + "' -ArgumentList '" + binPath + "','web' -WorkingDirectory '" + cwd + "' -WindowStyle Hidden",
+    "'started at ' + (Get-Date -Format 'HH:mm:ss') | Out-File $log -Append",
+    '$up = $false',
+    '$t2 = 0',
+    'do {',
+    '  Start-Sleep -Seconds 2',
+    '  $t2++',
+    '  if (Get-NetTCPConnection -LocalPort ' + PORT + ' -State Listen -ErrorAction SilentlyContinue) { $up = $true }',
+    '} while (-not $up -and $t2 -lt 20)',
+    "'up after ' + ($t2 * 2) + 's = ' + $up | Out-File $log -Append",
   ].join('\n')
 }
 
