@@ -72,13 +72,26 @@ function RebootButton(props: { wide: boolean }) {
     setBusy(true)
     fetch('/reboot', { method: 'POST', cache: 'no-store' })
       .then(() => {
+        // Reload only after the old server was observed DEAD, so the reload
+        // lands on the freshly booted instance (never on the old one, whose
+        // composition lacks newly installed plugins). Fall back to a plain
+        // reload if the old server never actually went away.
+        let sawDead = false
+        let tries = 0
         const poll = (): void => {
+          tries += 1
           fetch(window.location.origin + '/', { cache: 'no-store' }).then(
-            () => window.location.reload(),
-            () => setTimeout(poll, 1000),
+            () => {
+              if (sawDead || tries > 30) window.location.reload()
+              else setTimeout(poll, 1000)
+            },
+            () => {
+              sawDead = true
+              setTimeout(poll, 1000)
+            },
           )
         }
-        setTimeout(poll, 1500)
+        setTimeout(poll, 2000)
       })
       .catch(() => setBusy(false))
   }
