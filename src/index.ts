@@ -82,7 +82,6 @@ function restartScript(nodePath: string, binPath: string, cwd: string, logPath: 
   return [
     "$ErrorActionPreference = 'SilentlyContinue'",
     "'restart start ' + (Get-Date -Format 'HH:mm:ss') | Out-File '" + logPath + "'",
-    'Start-Sleep -Seconds 2',
     '$c = Get-NetTCPConnection -LocalPort ' + PORT + ' -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1',
     "'found pid ' + $c.OwningProcess | Out-File '" + logPath + "' -Append",
     'if ($c) { taskkill /PID $c.OwningProcess /T /F }',
@@ -93,7 +92,7 @@ function restartScript(nodePath: string, binPath: string, cwd: string, logPath: 
     '  $still = Get-NetTCPConnection -LocalPort ' + PORT + ' -State Listen -ErrorAction SilentlyContinue',
     '} while ($still -and $tries -lt 15)',
     "'port free after ' + $tries + 's' | Out-File '" + logPath + "' -Append",
-    'Start-Sleep -Seconds 3',
+    'Start-Sleep -Seconds 1',
     "Start-Process -FilePath '" + nodePath + "' -ArgumentList '" + binPath + "','web' -WorkingDirectory '" + cwd + "' -WindowStyle Hidden",
     "'started at ' + (Get-Date -Format 'HH:mm:ss') | Out-File '" + logPath + "' -Append",
     '$up = $false',
